@@ -15,7 +15,7 @@
   -moz-osx-font-smoothing: grayscale;
 
   margin: 2px;
-  overflow: hidden;
+  overflow: auto;
   /* 🚫 disables scrolling */
   height: 100%;
 }

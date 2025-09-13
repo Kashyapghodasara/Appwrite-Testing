@@ -2,61 +2,74 @@ import { ID } from "appwrite";
 import { createContext, useContext, useEffect, useState } from "react";
 import { account } from "../appwrite.js";
 
-// To access data from context in other components
+// Context
 const UserContext = createContext();
 
 export function useUser() {
-    return useContext(UserContext);
+  return useContext(UserContext);
 }
 
-export function UserProvider(props) {
-    const [user, setUser] = useState(null);
+export function UserProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    async function login(email, password) {
-        try {
-            const loggedIn = await account.createEmailPasswordSession(email, password);
-            setUser(loggedIn);
-            window.location.href = "/dashboard"; // ✅ fixed
-        } catch (err) {
-            console.error("Login failed:", err.message);
-        }
+  // 🔹 Login
+  async function login(email, password) {
+    try {
+      // Try to get logged-in user first
+      const existingUser = await account.get();
+      console.log("Already logged in:", existingUser);
+      setUser(existingUser);
+    } catch {
+      // Not logged in → create new session
+      await account.createEmailPasswordSession(email, password);
+      const loggedInUser = await account.get();
+      console.log("Login successful:", loggedInUser);
+      setUser(loggedInUser);
+      window.location.href = "/dashboard"; // redirect after login
     }
+  }
 
-    async function logout() {
-        try {
-            await account.deleteSession("current");
-            setUser(null);
-            window.location.href = "/signup"; // ✅ fixed
-        } catch (err) {
-            console.error("Logout failed:", err.message);
-        }
+  // 🔹 Logout
+  async function logout() {
+    try {
+      await account.deleteSession("current");
+      setUser(null);
+      window.location.href = "/signup"; // redirect after logout
+    } catch (err) {
+      console.error("Logout failed:", err.message);
     }
+  }
 
-    async function signup(name, email, password) {
-        try {
-            await account.create(ID.unique(), email, password, name); // ✅ fixed
-            await login(email, password);
-        } catch (err) {
-            console.error("Signup failed:", err.message);
-        }
+  // 🔹 Signup
+  async function signup(name, email, password) {
+    try {
+      await account.create(ID.unique(), email, password, name);
+      await login(email, password); // login will setUser
+    } catch (err) {
+      console.error("Signup failed:", err.message);
     }
+  }
 
-    async function init() {
-        try {
-            const loggedIn = await account.get();
-            setUser(loggedIn);
-        } catch {
-            setUser(null);
-        }
+  // 🔹 Init on page load (restore session if exists)
+  async function init() {
+    try {
+      const loggedInUser = await account.get();
+      setUser(loggedInUser);
+    } catch {
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    useEffect(() => {
-        init();
-    }, []);
+  useEffect(() => {
+    init();
+  }, []);
 
-    return (
-        <UserContext.Provider value={{ current: user, login, logout, signup }}>
-            {props.children}
-        </UserContext.Provider>
-    );
+  return (
+    <UserContext.Provider value={{ current: user, login, logout, signup, loading }}>
+      {children}
+    </UserContext.Provider>
+  );
 }
