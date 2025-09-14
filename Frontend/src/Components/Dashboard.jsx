@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useUser } from "../lib/context/user";
+import { useProfile } from "../lib/context/profile.jsx";
 
 export default function Dashboard() {
   const { logout } = useUser();
+  const { createProfile, getProfiles, deleteProfile } = useProfile();
 
   const [profile, setProfile] = useState(null);
   const [form, setForm] = useState({
@@ -20,13 +22,24 @@ export default function Dashboard() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setProfile(form);
+    await createProfile(form); // save to DB
+    const res = await getProfiles(); // fetch from DB
+    if (res && res.length > 0) setProfile(res[0]);
   };
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const res = await getProfiles();
+      if (res && res.length > 0) setProfile(res[0]);
+    }
+    fetchProfile();
+  }, []);
 
   const handleDelete = () => {
     setProfile(null);
+    deleteProfile();
     setForm({
       fullname: "",
       email: "",
@@ -53,7 +66,7 @@ export default function Dashboard() {
       </div>
 
       {/* 🔹 Main Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 flex-1 p-8 gap-8">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 flex-1 p-8 gap-8">
         {/* Left - Profile Form */}
         <form
           onSubmit={handleSubmit}
@@ -91,15 +104,31 @@ export default function Dashboard() {
           <h2 className="text-2xl font-bold mb-6 text-center">👤 Profile Preview</h2>
 
           {profile ? (
-            <div className="space-y-3 text-lg">
-              <p><strong>Full Name:</strong> {profile.fullname}</p>
-              <p><strong>Email:</strong> {profile.email}</p>
-              <p><strong>Education:</strong> {profile.education}</p>
-              <p><strong>Gender:</strong> {profile.gender}</p>
-              <p><strong>Age:</strong> {profile.age}</p>
-              <p><strong>City:</strong> {profile.city}</p>
-              <p><strong>State:</strong> {profile.state}</p>
-              <p><strong>Country:</strong> {profile.country}</p>
+            <div className="space-y-5 text-lg">
+              <p>
+                <strong>Full Name:</strong> {profile.fullname}
+              </p>
+              <p>
+                <strong>Email:</strong> {profile.email}
+              </p>
+              <p>
+                <strong>Education:</strong> {profile.education}
+              </p>
+              <p>
+                <strong>Gender:</strong> {profile.gender}
+              </p>
+              <p>
+                <strong>Age:</strong> {profile.age}
+              </p>
+              <p>
+                <strong>City:</strong> {profile.city}
+              </p>
+              <p>
+                <strong>State:</strong> {profile.state}
+              </p>
+              <p>
+                <strong>Country:</strong> {profile.country}
+              </p>
 
               <button
                 onClick={handleDelete}
